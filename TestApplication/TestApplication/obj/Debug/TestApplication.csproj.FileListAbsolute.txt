@@ -1,0 +1,14 @@
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\bin\Debug\TestApplication.exe.config
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\bin\Debug\TestApplication.exe
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\bin\Debug\TestApplication.pdb
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\bin\Debug\CacheClient.pdb
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\obj\Debug\TestApplication.csproj.AssemblyReference.cache
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\obj\Debug\TestApplication.csproj.SuggestedBindingRedirects.cache
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\obj\Debug\TestApplication.csproj.CoreCompileInputs.cache
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\obj\Debug\TestApplication.csproj.CopyComplete
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\obj\Debug\TestApplication.exe
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\obj\Debug\TestApplication.pdb
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\bin\Debug\CacheClient.dll.config
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\bin\Debug\Newtonsoft.Json.dll
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\bin\Debug\Newtonsoft.Json.xml
+C:\Users\ayesha_mukhtar\source\repos\TestApplication\TestApplication\bin\Debug\CacheClient.dll

@@ -1,0 +1,8 @@
+C:\Users\ayesha_mukhtar\source\repos\CacheServer\CacheServer\bin\Debug\CacheServer.exe.config
+C:\Users\ayesha_mukhtar\source\repos\CacheServer\CacheServer\bin\Debug\CacheServer.exe
+C:\Users\ayesha_mukhtar\source\repos\CacheServer\CacheServer\bin\Debug\CacheServer.pdb
+C:\Users\ayesha_mukhtar\source\repos\CacheServer\CacheServer\obj\Debug\CacheServer.csproj.AssemblyReference.cache
+C:\Users\ayesha_mukhtar\source\repos\CacheServer\CacheServer\obj\Debug\CacheServer.csproj.SuggestedBindingRedirects.cache
+C:\Users\ayesha_mukhtar\source\repos\CacheServer\CacheServer\obj\Debug\CacheServer.csproj.CoreCompileInputs.cache
+C:\Users\ayesha_mukhtar\source\repos\CacheServer\CacheServer\obj\Debug\CacheServer.exe
+C:\Users\ayesha_mukhtar\source\repos\CacheServer\CacheServer\obj\Debug\CacheServer.pdb
