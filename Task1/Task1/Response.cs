@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Task1
 {
-    internal class Response
+    public class Response
     {
         public string MsgResponse { get; set; }
         public Object Value { get; set; }

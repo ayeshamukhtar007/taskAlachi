@@ -14,41 +14,32 @@ namespace TestApplication
 
         static void Main(string[] args)
         {
-            Client client=null;
+          
+            ICache client = null;
+
+
             while (true)
             {
                 try
                 {
-                    client = new Client();
+                   
+                     client = new Client();
+                 
                     if (client != null) break;
 
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine("No Connection made");
-                    Console.WriteLine("Enter A for Try Again or Press any Key for Exit");
+                    Console.WriteLine("Trying Again");
 
-                    string res = Console.ReadLine().ToUpper();
-                    if (res == "A") client = new Client();
-                    else
-                        Environment.Exit(0);
+                    //string res = Console.ReadLine().ToUpper();
+                    //if (res == "A") connection = new Network();
+                    //else
+                    //    Environment.Exit(0);
 
                 }
             }
-            //try
-            //{
-            //    client.Register();
-            //}
-            //catch (Exception e)
-            //{
-            //    Console.WriteLine(e.Message);
-            //}
-            //Thread rec = new Thread(() => {
-            //    client.Onchagne += Message;
-            //    client.listen();
-
-            //});
-            //rec.Start();
             while (true)
             {
                 Console.WriteLine("Cache Operation Menu");
@@ -59,8 +50,13 @@ namespace TestApplication
                 Console.WriteLine("5: Dispose cache");
                 Console.WriteLine("6: Register an Event on server");
                 Console.WriteLine("7: Exit");
-                Console.Write("Enter operation number here: ");
-                var operation = Console.ReadLine();
+                var operation = "";
+               
+                    Console.Write("Enter operation number here: ");
+                     operation = Console.ReadLine();
+
+                
+                
                 string key;
                 object value;
                 Response res;
@@ -69,7 +65,7 @@ namespace TestApplication
                     case "1":
                         Console.Write("Enter key: ");
                         key = Console.ReadLine();
-                        while(key == "")
+                        while (key == "")
                         {
                             Console.Write("Key is required or enter X for cancelation:");
                             key = Console.ReadLine();
@@ -77,18 +73,20 @@ namespace TestApplication
                         if (key.ToUpper() == "X") break;
                         Console.Write("Enter value: ");
                         value = Console.ReadLine();
-                        while (value == "")
+                        while (value == null)
                         {
                             Console.Write("Value is required or enter X for cancelation:");
                             value = Console.ReadLine().ToUpper();
                         }
                         if (value.Equals("X")) break;
-                        try {
-                            res = (Response)client.Add(key, value);
-                            Console.WriteLine(res.MsgResponse);
+                        try
+                        {
+                            client.Add(key, value);
+
 
                         }
-                        catch (Exception e){
+                        catch (Exception e)
+                        {
                             Console.WriteLine(e.Message);
                         }
                         break;
@@ -105,7 +103,8 @@ namespace TestApplication
                         try
                         {
                             res = (Response)client.Get(key);
-                        Console.WriteLine(res.MsgResponse+"  " +res.Value);
+                            if(res.Equals(""))
+                            Console.WriteLine(res.MsgResponse + "  " + res.Value);
                         }
                         catch (Exception e)
                         {
@@ -121,9 +120,10 @@ namespace TestApplication
                             key = Console.ReadLine();
                         }
                         if (key.ToUpper() == "X") break;
-                        try { 
-                        res = (Response)client.Remove(key);
-                        Console.WriteLine(res.MsgResponse);
+                        try
+                        {
+                            client.Remove(key);
+                            
                         }
                         catch (Exception e)
                         {
@@ -131,9 +131,10 @@ namespace TestApplication
                         }
                         break;
                     case "4":
-                        try { 
-                        res=(Response)client.Clear();
-                        Console.WriteLine(res.MsgResponse);
+                        try
+                        {
+                           client.Clear();
+                            
                         }
                         catch (Exception e)
                         {
@@ -141,9 +142,10 @@ namespace TestApplication
                         }
                         break;
                     case "5":
-                        try { 
-                        res=(Response)client.Dispose();
-                        Console.WriteLine(res.MsgResponse);
+                        try
+                        {
+                            client.Dispose();
+                         
                         }
                         catch (Exception e)
                         {
@@ -153,35 +155,37 @@ namespace TestApplication
                     case "6":
                         try
                         {
-                           
-                            client.Onchagne += Message;
+                            client.AddEvent(Message);
 
 
-                            client.Register();
+
+                            
                         }
                         catch (Exception e)
                         {
                             Console.WriteLine(e.Message);
                         }
-                      
-                        break;  
+
+                        break;
                     case "7":
 
-                        Environment.Exit(0); 
+                        Environment.Exit(0);
                         break;
                 }
 
-            
 
-           }
-            
-          
+
+
+            }
         }
 
-        public static void Message(object sender, string msg)
-        {
-            Console.WriteLine(msg);
 
-        }
+    
+
+    public static void Message(string msg)
+    {
+        Console.WriteLine("Notificatio "+msg);
+
     }
+}
 }

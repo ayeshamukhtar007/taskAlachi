@@ -17,66 +17,105 @@ using System.Threading;
 using Common;
 namespace CacheClient 
 {
-  
+    public delegate void Edelegate(string st);
+    public delegate void Rdelegate(string st);
 
-    public class Client
+    public class Client:ICache
     {
-        private NetworkStream clientstream;
-        private TcpClient client;
-        public event EventHandler<string> Onchagne;
+        public NetworkStream clientstream;
+        public TcpClient client; 
+        public event Edelegate Onchange;
+        public List<Response> ResponseList;
         public Client()
         {
-            
-            string serverAddr ="127.0.0.1";
+
+            Initialize();
+
+
+        }
+        public void Initialize()
+        {
+            string serverAddr = "127.0.0.1";
             int port = int.Parse(ConfigurationManager.AppSettings["port"]);
-            try {
+            try
+            {
                 client = new TcpClient(serverAddr, port);
                 clientstream = client.GetStream();
+                new Thread(() =>
+                {
+                    while (true)
+                    {
+
+                        byte[] buffer = new byte[client.ReceiveBufferSize];
+                        var received = clientstream.Read(buffer, 0, buffer.Length);
+                        var res = Encoding.UTF8.GetString(buffer, 0, received);
+                        Response response = JsonConvert.DeserializeObject<Response>(res);
+                        if (response != null && response.Value != null && response.Value.Equals("Notification"))
+                        {
+                            Onchange?.Invoke(response.MsgResponse);
+                        }
+                        else
+                        {
+                            ResponseList = new List<Response>
+                            {
+                                response
+                            };
+                        }
+
+                    }
+                }
+                    ).Start();
+
             }
-            catch(SocketException e)
+            catch (SocketException e)
             {
                 throw e;
             }
-             
-      
-
         }
-        public object Add(string key, object value)
-        {
 
+       public  void Add(string key, object value)
+        {
             var message = new Request { Operation = "add", Key = key, Value = value };
             try
             {
-                var jsonString = JsonConvert.SerializeObject(message);
-                var messageBytes = Encoding.UTF8.GetBytes(jsonString);
-                clientstream.Write(messageBytes, 0, messageBytes.Length);
-                //get response from server
-                byte[] buffer = new byte[client.ReceiveBufferSize];
-                var received = clientstream.Read(buffer, 0, buffer.Length);
-                var res = Encoding.UTF8.GetString(buffer, 0, received);
-                Response response = JsonConvert.DeserializeObject<Response>(res);
-                return response;
+                GenerateAndWriteBytes(message);
+                if (ResponseList != null) {
+                    Response response = ResponseList.FirstOrDefault();
+                    if (response != null && response.Value != null && response.Value.Equals("Exception"))
+                    {
+                        throw new Exception(response.MsgResponse);
+                    }
+                    ResponseList.Remove(ResponseList.FirstOrDefault());
+
+                }
+               
+
+
+
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-     
+
                 throw e;
             }
-
         }
         public object Get(string key)
         {
-            try { 
-            var message = new Request { Operation = "get", Key = key};
-            var jsonString = JsonConvert.SerializeObject(message);
-            var messageBytes = Encoding.UTF8.GetBytes(jsonString);
-            clientstream.Write(messageBytes, 0, messageBytes.Length);
+            var message = new Request { Operation = "get", Key = key };
 
-            byte[] buffer = new byte[client.ReceiveBufferSize];
-            var received = clientstream.Read(buffer, 0, buffer.Length);
-            var res = Encoding.UTF8.GetString(buffer, 0, received);
-            Response response = JsonConvert.DeserializeObject<Response>(res);
-            return response;
+            try
+            {
+                GenerateAndWriteBytes(message);
+                if (ResponseList != null)
+                {
+                    Response response = ResponseList.FirstOrDefault();
+                    ResponseList.Remove(ResponseList.FirstOrDefault());
+                    return response;
+                }
+                else
+                {
+                    return "";
+                }
             }
             catch (Exception e)
             {
@@ -85,21 +124,20 @@ namespace CacheClient
             }
 
         }
-        public object Remove(string key)
+        public void Remove(string key)
         {
+            var message = new Request { Operation = "remove", Key = key };
+
             try
             {
+                GenerateAndWriteBytes(message);
+                Response response = ResponseList.FirstOrDefault();
+                ResponseList.Remove(ResponseList.FirstOrDefault());
 
-                var message = new Request { Operation = "remove", Key = key };
-                var jsonString = JsonConvert.SerializeObject(message);
-                var messageBytes = Encoding.UTF8.GetBytes(jsonString);
-                clientstream.Write(messageBytes, 0, messageBytes.Length);
-
-                byte[] buffer = new byte[client.ReceiveBufferSize];
-                var received = clientstream.Read(buffer, 0, buffer.Length);
-                var res = Encoding.UTF8.GetString(buffer, 0, received);
-                Response response = JsonConvert.DeserializeObject<Response>(res);
-                return response;
+                if (response.Value != null && response.Value.Equals("Exception"))
+                {
+                    throw new Exception(response.MsgResponse);
+                }
             }
             catch(Exception e)
             {
@@ -108,19 +146,13 @@ namespace CacheClient
             }
 
 }
-        public object Dispose()
+        public void Dispose()
         {
-            try { 
-            var message = new Request { Operation = "dispose"};
-            var jsonString = JsonConvert.SerializeObject(message);
-            var messageBytes = Encoding.UTF8.GetBytes(jsonString);
-            clientstream.Write(messageBytes, 0, messageBytes.Length);
+            var message = new Request { Operation = "dispose" };
 
-            byte[] buffer = new byte[client.ReceiveBufferSize];
-            var received = clientstream.Read(buffer, 0, buffer.Length);
-            var res = Encoding.UTF8.GetString(buffer, 0, received);
-            Response response = JsonConvert.DeserializeObject<Response>(res);
-            return response;
+            try
+            {
+                GenerateAndWriteBytes(message);
             }
             catch (Exception e)
             {
@@ -130,94 +162,91 @@ namespace CacheClient
 
         }
      
-        public void Register()
+        
+        public void Clear()
         {
            
-            try
+           var message = new Request { Operation = "clear"};
+            try {
+
+                GenerateAndWriteBytes(message);
+                Response response = ResponseList.FirstOrDefault();
+                ResponseList.Remove(ResponseList.FirstOrDefault());
+
+                if (response.Value != null && response.Value.Equals("Exception"))
+                {
+                    throw new Exception(response.MsgResponse);
+                }
+            }
+            catch (Exception e)
             {
-                var message = new Request { Operation = "register" };
+
+                throw e;
+            }
+
+
+        }
+
+       public void GenerateAndWriteBytes(Request message)
+        {
+            
                 var jsonString = JsonConvert.SerializeObject(message);
                 var messageBytes = Encoding.UTF8.GetBytes(jsonString);
                 clientstream.Write(messageBytes, 0, messageBytes.Length);
+          
+        }
+        public Response GetMsg()
+        {
+            
                 byte[] buffer = new byte[client.ReceiveBufferSize];
                 var received = clientstream.Read(buffer, 0, buffer.Length);
                 var res = Encoding.UTF8.GetString(buffer, 0, received);
-                Response response = JsonConvert.DeserializeObject<Response>(res);
-                Console.WriteLine(response);
-                Thread rec = new Thread(() =>
-                {
-                    Listen();
+                 Response response = JsonConvert.DeserializeObject<Response>(res);
+            
 
 
-
-                });
-                rec.Start();
-                //CommonClass common = new CommonClass();
-                //common.Common += Listen;
-
-                //    new Thread(() => {
-                //        buffer = new byte[client.ReceiveBufferSize];
-                //        received = clientstream.Read(buffer, 0, buffer.Length);
-                //        res = Encoding.UTF8.GetString(buffer, 0, received);
-                //        response = JsonConvert.DeserializeObject<Response>(res);
-
-                //        Onchagne?.Invoke(this, response.MsgResponse);
-                //    }
-
-                //).Start();
- }
-            catch (Exception e)
-            {
-
-                throw e;
-            }
-
+            return response;
         }
-        //public void Listen(object sender, string st)
+
+        public void AddEvent(Action<string> Message)
+        {
+           
+            Onchange += new Edelegate(Message);
+
+            var message = new Request { Operation = "register" };
+                GenerateAndWriteBytes(message);
+                //Response response = GetMsg();
+
+               
+                //Thread rec = new Thread(() =>
+                //{
+                //    Listen();
+                //});
+                //rec.Start();
+
+           
+        }
         public void Listen()
         {
-            try
-            {
-                while (true)
-                {
-                    byte[] buffer = new byte[client.ReceiveBufferSize];
-                    var received = clientstream.Read(buffer, 0, buffer.Length);
-                    var res = Encoding.UTF8.GetString(buffer, 0, received);
-                    Response response = JsonConvert.DeserializeObject<Response>(res);
-                    if (response.Value != null && response.Value.Equals("Notification"))
-                    {
-                        //Console.WriteLine("Cacheclient Listen here "+ st);
-                        Onchagne?.Invoke(this, response.MsgResponse);
-                    }
-                }
-            }catch(Exception e)
-            {
-                throw e;
-            }
+            //try
+            //{
+            //    while (true)
+            //    {
+            //        Response response = GetMsg();
+            //        if (response.Value != null && response.Value.Equals("Notification"))
+            //        {
+            //            Onchange?.Invoke(response.MsgResponse);
+            //        }
+
+
+                    
+            //    }
+            //}
+            //catch (Exception e)
+            //{
+            //    throw e;
+            //}
         }
-        public object Clear()
-        {
-            try { 
-           var message = new Request { Operation = "clear"};
-            var jsonString = JsonConvert.SerializeObject(message);
-            var messageBytes = Encoding.UTF8.GetBytes(jsonString);
-            clientstream.Write(messageBytes, 0, messageBytes.Length);
-
-            byte[] buffer = new byte[client.ReceiveBufferSize];
-            var received = clientstream.Read(buffer, 0, buffer.Length);
-            var res = Encoding.UTF8.GetString(buffer, 0, received);
-            Response response = JsonConvert.DeserializeObject<Response>(res);
-            return response;
-            }
-            catch (Exception e)
-            {
-
-                throw e;
-            }
-
-
-        }
-
     }
 
 

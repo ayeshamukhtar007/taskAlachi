@@ -11,27 +11,28 @@ namespace CacheClient
         /// <summary>
         /// Initializes the cache instance
         /// </summary>
-        public void Initialize();
+         void Initialize();
         /// <summary>
         /// Adds the item to the cache.
         /// </summary>
-        public void Add(string key, object value);
+         void Add(string key, object value);
         /// <summary>
         /// Removes the item from the cache.
         /// </summary>
-        public void Remove(string key);
+         void Remove(string key);
         /// <summary>
         /// Retrieves the item from the cache.
         /// </summary>
-        public object Get(string key);
+         object Get(string key);
         /// <summary>
         /// Clears the contents of the cache.
         /// </summary>
-        public void Clear();
+         void Clear();
         /// <summary>
         /// Destroys the cache.
         /// </summary>
-        public void Dispose();
-
+         void Dispose();
+        void AddEvent(Action<string> myMethodName);
+        
     }
 }

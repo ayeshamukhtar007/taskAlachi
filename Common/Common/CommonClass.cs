@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 
 namespace Common
 {
-    public class CommonClass
+    public  delegate void Edelegate(string st);
+    public static class CommonClass
     {
-        public event EventHandler<string> Common;
-        public void InvokeMethod(string st)
+        public static event Edelegate Common;
+        public static void InvokeMethod(string st)
         {
             Console.WriteLine("Common here "+st);
-            Common?.Invoke(this, st);
+            Common?.Invoke(st);
         }
     }
 }
