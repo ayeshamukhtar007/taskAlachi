@@ -26,8 +26,8 @@ namespace Task1
                     Request request;
                     
                        request = GetMsg(handler);
-                   
 
+                  
 
                         Response message;
                         switch (request.Operation)
@@ -36,7 +36,8 @@ namespace Task1
                                 try
                                 {
                                     cache.Add(request.Key, request.Value);
-                                
+                                message = new Response { MsgResponse = "Added" };
+                                GenerateAndWriteBytes(message, handler);
                                 Thread notifyRemoveThread = new(() => Notify("Add Operation exceuted on cache"));
                                 notifyRemoveThread.Start();
                             }
@@ -66,8 +67,8 @@ namespace Task1
                                 try
                                 {
                                     cache.Remove(request.Key);
-                                    //message = new Response { MsgResponse = "remove successfully" };
-                                    //GenerateAndWriteBytes(message, handler);
+                                    message = new Response { MsgResponse = "remove successfully" };
+                                    GenerateAndWriteBytes(message, handler);
                                     Thread notifyRemoveThread = new(() => Notify("Remove Operation exceuted on cache"));
                                     notifyRemoveThread.Start();
                                 }
@@ -78,9 +79,9 @@ namespace Task1
                                 }
                                 break;
                             case "clear":
-                                cache.Clear();
-                                //message = new Response { MsgResponse = "added successfully" };
-                                //GenerateAndWriteBytes(message, handler);
+                                cache.Clear(); 
+                                message = new Response { MsgResponse = "added successfully" };
+                                GenerateAndWriteBytes(message, handler);
                                 Thread notifyThread = new(() => Notify("Clear Operation exceuted on cache"));
                                 notifyThread.Start();
                                 break;
@@ -90,7 +91,7 @@ namespace Task1
                                 GenerateAndWriteBytes(message, handler);
                                 break;
                             case "dispose":
-                                cache.Dispose();//here we when made cache object also pass client thread so when they dispose close that client thread 
+                                handler.Dispose();//here we when made cache object also pass client thread so when they dispose close that client thread 
                                 break;
                         }
 
@@ -103,6 +104,10 @@ namespace Task1
                 Console.WriteLine(e.Message);
                 
             }
+            catch (NullReferenceException e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
         public void GenerateAndWriteBytes(Response message, TcpClient handler)
         {
@@ -112,19 +117,28 @@ namespace Task1
                     var jsonString = JsonConvert.SerializeObject(message);
                 var messageBytes = Encoding.UTF8.GetBytes(jsonString);
                 handler.GetStream().Write(messageBytes, 0, messageBytes.Length);
-              
-           
+            handler.GetStream().Flush();
+
+
         }
         public Request GetMsg(TcpClient handler)
         {
-           
+            byte[] buffer;
+            try
+            {
 
-                byte[] buffer = new byte[handler.ReceiveBufferSize];
-                var received = handler.GetStream().Read(buffer, 0, buffer.Length);
+                buffer = new byte[handler.ReceiveBufferSize];
+            }
+            catch (NullReferenceException e)
+            {
+                throw e;
+            }
+            var received = handler.GetStream().Read(buffer, 0, buffer.Length);
                 var res = Encoding.UTF8.GetString(buffer, 0, received);
                 Request request = JsonConvert.DeserializeObject<Request>(res);
+
+                return request;
            
-            return request;
         }
 
         private void Notify(string message)

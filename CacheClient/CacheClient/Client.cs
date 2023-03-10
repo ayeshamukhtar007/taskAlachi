@@ -15,17 +15,21 @@ using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using System.Threading;
 using Common;
+using System.IO;
+
 namespace CacheClient 
 {
     public delegate void Edelegate(string st);
     public delegate void Rdelegate(string st);
-
     public class Client:ICache
     {
         public NetworkStream clientstream;
         public TcpClient client; 
         public event Edelegate Onchange;
-        public List<Response> ResponseList;
+        public Response ResponseList;
+        private static ManualResetEvent mre = new ManualResetEvent(false);
+        private static ManualResetEvent ex = new ManualResetEvent(false);
+        static readonly object Lock = new object();
         public Client()
         {
 
@@ -37,62 +41,113 @@ namespace CacheClient
         {
             string serverAddr = "127.0.0.1";
             int port = int.Parse(ConfigurationManager.AppSettings["port"]);
+       
             try
             {
                 client = new TcpClient(serverAddr, port);
                 clientstream = client.GetStream();
+                byte[] buffer;
+                int received=0;
+                string res;
                 new Thread(() =>
                 {
                     while (true)
                     {
+                        
+                            buffer = new byte[client.ReceiveBufferSize];
 
-                        byte[] buffer = new byte[client.ReceiveBufferSize];
-                        var received = clientstream.Read(buffer, 0, buffer.Length);
-                        var res = Encoding.UTF8.GetString(buffer, 0, received);
-                        Response response = JsonConvert.DeserializeObject<Response>(res);
-                        if (response != null && response.Value != null && response.Value.Equals("Notification"))
+                        try
                         {
-                            Onchange?.Invoke(response.MsgResponse);
+                            received = clientstream.Read(buffer, 0, buffer.Length);
                         }
-                        else
+                        catch (IOException e)
                         {
-                            ResponseList = new List<Response>
+
+
+                            while (true)
                             {
-                                response
-                            };
+                                try
+                                {
+                                    client = new TcpClient(serverAddr, port);
+                                    clientstream = client.GetStream();
+                                    break;
+                                }catch(Exception ex) { }
+                            }
+
+                        }
+
+                        clientstream.Flush();
+                        res = Encoding.UTF8.GetString(buffer, 0, received);
+                        Response response = JsonConvert.DeserializeObject<Response>(res);
+                        res = "";
+                       
+                        lock(Lock)
+                        {
+                            if (response != null && response.Value != null && response.Value.Equals("Notification"))
+                            {
+                                Onchange?.Invoke(response.MsgResponse);
+
+
+                            }
+                            else if ((response != null && response.Value != null && response.Value.Equals("Exception")))
+                            {
+                                ResponseList = (Response)response;
+                                Monitor.Pulse(Lock);
+                                //mre.Set();
+
+                            }
+                            else
+                            {
+                                //mre.Set();
+                                ResponseList = (Response)response;
+                                Monitor.Pulse(Lock);
+                            }
+
                         }
 
                     }
                 }
                     ).Start();
-
+               
             }
             catch (SocketException e)
             {
                 throw e;
+            }
+            catch (IOException e)
+            {
+                throw ;
             }
         }
 
        public  void Add(string key, object value)
         {
             var message = new Request { Operation = "add", Key = key, Value = value };
+           
             try
             {
                 GenerateAndWriteBytes(message);
-                if (ResponseList != null) {
-                    Response response = ResponseList.FirstOrDefault();
-                    if (response != null && response.Value != null && response.Value.Equals("Exception"))
+                lock (Lock)
+                {
+                    //mre.WaitOne();
+                    Monitor.Wait(Lock);
+
+                    if (ResponseList != null && ResponseList.Value != null && ResponseList.Value.Equals("Exception"))
                     {
-                        throw new Exception(response.MsgResponse);
+
+                        string ex = ResponseList.MsgResponse;
+                        ResponseList = new Response();
+                        throw new Exception(ex);
+
                     }
-                    ResponseList.Remove(ResponseList.FirstOrDefault());
+
 
                 }
-               
-
-
-
             }
+
+
+
+
             catch (Exception e)
             {
 
@@ -102,26 +157,31 @@ namespace CacheClient
         public object Get(string key)
         {
             var message = new Request { Operation = "get", Key = key };
-
+            
+            Response ex1=new Response();
             try
             {
                 GenerateAndWriteBytes(message);
-                if (ResponseList != null)
+      
+                lock (Lock)
                 {
-                    Response response = ResponseList.FirstOrDefault();
-                    ResponseList.Remove(ResponseList.FirstOrDefault());
-                    return response;
-                }
-                else
+                    //mre.WaitOne();
+                    Monitor.Wait(Lock);
+                    if (ResponseList != null&& ResponseList.Value != null)
                 {
-                    return "";
+                        ex1 = ResponseList;
+                        ResponseList = new Response();
+                      
                 }
+                }
+                return ex1; 
             }
             catch (Exception e)
             {
 
                 throw e;
             }
+        
 
         }
         public void Remove(string key)
@@ -131,21 +191,30 @@ namespace CacheClient
             try
             {
                 GenerateAndWriteBytes(message);
-                Response response = ResponseList.FirstOrDefault();
-                ResponseList.Remove(ResponseList.FirstOrDefault());
-
-                if (response.Value != null && response.Value.Equals("Exception"))
+                lock (Lock)
                 {
-                    throw new Exception(response.MsgResponse);
+                    //mre.WaitOne();
+                    Monitor.Wait(Lock);
+
+                    if (ResponseList != null && ResponseList.Value != null && ResponseList.Value.Equals("Exception"))
+                    {
+
+                        string ex = ResponseList.MsgResponse;
+                        ResponseList = new Response();
+                        throw new Exception(ex);
+
+                    }
+
+
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-     
+
                 throw e;
             }
 
-}
+        }
         public void Dispose()
         {
             var message = new Request { Operation = "dispose" };
@@ -153,6 +222,8 @@ namespace CacheClient
             try
             {
                 GenerateAndWriteBytes(message);
+                //Console.Read();
+                Environment.Exit(0);
             }
             catch (Exception e)
             {
@@ -165,17 +236,27 @@ namespace CacheClient
         
         public void Clear()
         {
-           
-           var message = new Request { Operation = "clear"};
-            try {
+
+            var message = new Request { Operation = "clear" };
+            try
+            {
 
                 GenerateAndWriteBytes(message);
-                Response response = ResponseList.FirstOrDefault();
-                ResponseList.Remove(ResponseList.FirstOrDefault());
-
-                if (response.Value != null && response.Value.Equals("Exception"))
+                lock (Lock)
                 {
-                    throw new Exception(response.MsgResponse);
+                    //mre.WaitOne();
+                    Monitor.Wait(Lock);
+
+                    if (ResponseList != null && ResponseList.Value != null && ResponseList.Value.Equals("Exception"))
+                    {
+
+                        string ex = ResponseList.MsgResponse;
+                        ResponseList = new Response();
+                        throw new Exception(ex);
+
+                    }
+
+
                 }
             }
             catch (Exception e)
@@ -214,16 +295,14 @@ namespace CacheClient
             Onchange += new Edelegate(Message);
 
             var message = new Request { Operation = "register" };
+            try
+            {
                 GenerateAndWriteBytes(message);
-                //Response response = GetMsg();
+            }catch(Exception e)
+            {
 
-               
-                //Thread rec = new Thread(() =>
-                //{
-                //    Listen();
-                //});
-                //rec.Start();
-
+                throw e;
+            }
            
         }
         public void Listen()

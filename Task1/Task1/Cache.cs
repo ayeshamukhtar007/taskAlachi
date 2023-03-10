@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Task1
 {
-    public class Cache:ICache
+    public class Cache
     {
         private Dictionary<string, object> cache;
         static readonly object cacheLock = new object();
@@ -43,13 +43,7 @@ namespace Task1
             }
         }
 
-        public void Dispose()
-        {
-            lock (cacheLock)
-            {
-                cache = null;
-            }
-        }
+ 
 
         public object Get(string key)
         {

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CacheClient;
 using System.Configuration;
 using System.Threading;
+using System.IO;
 
 namespace TestApplication
 {
@@ -34,12 +35,18 @@ namespace TestApplication
                     Console.WriteLine("Trying Again");
 
                     //string res = Console.ReadLine().ToUpper();
-                    //if (res == "A") connection = new Network();
+                    //if (res == "A") client = new Client();
                     //else
                     //    Environment.Exit(0);
 
                 }
+                //catch (IOException e)
+                //{
+                //    Console.WriteLine("Connection break");
+
+                //}
             }
+        
             while (true)
             {
                 Console.WriteLine("Cache Operation Menu");
@@ -47,9 +54,9 @@ namespace TestApplication
                 Console.WriteLine("2: Get item from cache");
                 Console.WriteLine("3: Remove item from cache");
                 Console.WriteLine("4: Clear cache");
-                Console.WriteLine("5: Dispose cache");
+                Console.WriteLine("5: Dispose");
                 Console.WriteLine("6: Register an Event on server");
-                Console.WriteLine("7: Exit");
+              
                 var operation = "";
                
                     Console.Write("Enter operation number here: ");
@@ -60,6 +67,7 @@ namespace TestApplication
                 string key;
                 object value;
                 Response res;
+                
                 switch (operation)
                 {
                     case "1":
@@ -73,22 +81,27 @@ namespace TestApplication
                         if (key.ToUpper() == "X") break;
                         Console.Write("Enter value: ");
                         value = Console.ReadLine();
-                        while (value == null)
+                        while (value == null && value.Equals(""))
                         {
                             Console.Write("Value is required or enter X for cancelation:");
                             value = Console.ReadLine().ToUpper();
                         }
                         if (value.Equals("X")) break;
+
+                     
                         try
-                        {
-                            client.Add(key, value);
+                            {
+                                client.Add(key, value);
+                                
+                                }
+                                catch (Exception e)
+                                {
+                                    Console.WriteLine(e.Message);
+                                }
+                       
 
 
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e.Message);
-                        }
+
                         break;
 
                     case "2":
@@ -103,7 +116,7 @@ namespace TestApplication
                         try
                         {
                             res = (Response)client.Get(key);
-                            if(res.Equals(""))
+                            if(!res.Equals(""))
                             Console.WriteLine(res.MsgResponse + "  " + res.Value);
                         }
                         catch (Exception e)
@@ -142,16 +155,21 @@ namespace TestApplication
                         }
                         break;
                     case "5":
+                  
                         try
                         {
                             client.Dispose();
-                         
+                          
+
+                        
                         }
-                        catch (Exception e)
+                        catch(Exception e)
                         {
                             Console.WriteLine(e.Message);
+
                         }
                         break;
+
                     case "6":
                         try
                         {
@@ -167,16 +185,14 @@ namespace TestApplication
                         }
 
                         break;
-                    case "7":
-
-                        Environment.Exit(0);
-                        break;
+                    
                 }
 
 
 
 
             }
+
         }
 
 
